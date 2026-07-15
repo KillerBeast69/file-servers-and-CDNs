@@ -113,10 +113,19 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 
 	_, err = cfg.s3Client.PutObject(context.Background(), input)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "failed to upload video to s3: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "failed to upload video to s3", err)
 		return
 	}
 
 	videoURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", cfg.s3Bucket, cfg.s3Region, keyName)
+
+	video.VideoURL = &videoURL
+	err = cfg.db.UpdateVideo(video)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "failed to update video in database", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, video)
 
 }
