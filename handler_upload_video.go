@@ -108,12 +108,27 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	processedVideoPath, err := processVideoForFastStart(tempFile.Name())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "failed to process video", err)
+		return
+	}
+
+	defer os.Remove(processedVideoPath)
+
+	processedFile, err := os.Open(processedVideoPath)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "failed to open processed video", err)
+		return
+	}
+	defer processedFile.Close()
+
 	keyName := ratio + "/" + hex.EncodeToString(randBytes) + ".mp4"
 
 	input := &s3.PutObjectInput{
 		Bucket:      aws.String(cfg.s3Bucket),
 		Key:         aws.String(keyName),
-		Body:        tempFile,
+		Body:        processedFile,
 		ContentType: aws.String("video/mp4"),
 	}
 
