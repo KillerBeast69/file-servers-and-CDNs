@@ -102,7 +102,13 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	keyName := hex.EncodeToString(randBytes) + ".mp4"
+	ratio, err := getVideoAspectRatio(tempFile.Name())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "failed to get video aspect ratio", err)
+		return
+	}
+
+	keyName := ratio + "/" + hex.EncodeToString(randBytes) + ".mp4"
 
 	input := &s3.PutObjectInput{
 		Bucket:      aws.String(cfg.s3Bucket),
